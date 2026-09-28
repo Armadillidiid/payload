@@ -518,6 +518,7 @@ const validationCollection: CollectionConfig = {
     },
   },
   authorship: false,
+  dbName: 'validate_items',
   fields: [
     {
       name: 'title',
@@ -885,6 +886,7 @@ const validationGlobal: GlobalConfig = {
     },
   },
   authorship: false,
+  dbName: 'validate',
   fields: [
     {
       name: 'title',
