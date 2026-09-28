@@ -517,6 +517,7 @@ const validationCollection: CollectionConfig = {
       return hasValidationOperation && req.context.denyValidationAccess !== true
     },
   },
+  authorship: false,
   fields: [
     {
       name: 'title',
@@ -883,6 +884,7 @@ const validationGlobal: GlobalConfig = {
       return hasValidationOperation && req.context.denyValidationAccess !== true
     },
   },
+  authorship: false,
   fields: [
     {
       name: 'title',
