@@ -1,0 +1,93 @@
+import { expect } from 'vitest'
+
+import { test } from '../__helpers/int/vitest.js'
+import { saveAdditionalInstructions } from './helpers.js'
+
+test.suite({ config: './config.ts' })('CLI LLM instructions', () => {
+  test('should include saved global instructions alongside the CLI schema', async ({
+    cli,
+    payload,
+  }) => {
+    await saveAdditionalInstructions({ globalSlug: 'site-settings', payload })
+
+    const output = await cli('getGlobalSchema --slug site-settings --json')
+    const response = JSON.parse(output.stdout)
+
+    expect(response).toMatchObject({
+      result: {
+        slug: 'site-settings',
+        instructions: 'Keep page summaries under 100 words.',
+        schema: expect.any(Object),
+      },
+      success: true,
+    })
+    expect(response).not.toHaveProperty('instructions')
+  })
+
+  test('should include configured and saved collection instructions alongside the CLI JSON schema', async ({
+    cli,
+    payload,
+  }) => {
+    await saveAdditionalInstructions({ collectionSlug: 'pages', payload })
+
+    const output = await cli('getCollectionSchema --slug pages --json')
+    const response = JSON.parse(output.stdout)
+
+    expect(response).toMatchObject({
+      result: { slug: 'pages', schema: expect.any(Object) },
+      success: true,
+    })
+    expect(response.result.instructions).toContain('Use the configured layout blocks.')
+    expect(response.result.instructions).toContain('Keep page summaries under 100 words.')
+    expect(response).not.toHaveProperty('instructions')
+  })
+
+  test('should include instructions in the normal CLI schema output', async ({ cli, payload }) => {
+    await saveAdditionalInstructions({ collectionSlug: 'pages', payload })
+
+    const output = await cli('getCollectionSchema --slug pages --no-json')
+
+    expect(output.stdout).toContain('"schema":')
+    expect(output.stdout).toContain('"instructions":')
+    expect(output.stdout).toContain('Use the configured layout blocks.')
+    expect(output.stdout).toContain('Keep page summaries under 100 words.')
+  })
+
+  for (const { command, target } of [
+    { command: 'countDocuments --slug pages', target: { collectionSlug: 'pages' } },
+    { command: 'findGlobal --slug site-settings', target: { globalSlug: 'site-settings' } },
+    {
+      command: `createDocuments --slug pages --documents '[{"data":{"title":"New page"}}]'`,
+      target: { collectionSlug: 'pages' },
+    },
+    {
+      command: `updateGlobal --slug site-settings --data '{"title":"New site title"}'`,
+      target: { globalSlug: 'site-settings' },
+    },
+  ]) {
+    test(`should omit instructions from ${command.split(' ')[0]} responses`, async ({
+      cli,
+      payload,
+    }) => {
+      await saveAdditionalInstructions({ ...target, payload })
+
+      const output = await cli(`${command} --json`)
+      const response = JSON.parse(output.stdout)
+
+      expect(response.success).toBe(true)
+      expect(response).not.toHaveProperty('instructions')
+      expect(response.result).not.toHaveProperty('instructions')
+      expect(output.stdout).not.toContain('Use the configured layout blocks.')
+      expect(output.stdout).not.toContain('Keep page summaries under 100 words.')
+    })
+  }
+
+  test('should omit CLI instructions when none are configured or saved', async ({ cli }) => {
+    const output = await cli('getGlobalSchema --slug site-settings --json')
+    const response = JSON.parse(output.stdout)
+
+    expect(response).toMatchObject({ result: { slug: 'site-settings' }, success: true })
+    expect(response).not.toHaveProperty('instructions')
+    expect(response.result).not.toHaveProperty('instructions')
+  })
+})

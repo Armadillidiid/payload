@@ -217,6 +217,14 @@ MCP can add or replace files in upload-enabled collections.
 
 The agent reads the collection's upload settings before acting. MIME type and file-size restrictions still apply, URL uploads respect `pasteURL` and its allow list, and local files are transferred as base64.
 
+## LLM instructions
+
+The `getCollectionSchema` and `getGlobalSchema` tools return Payload's [shared LLM instructions](../configuration/cli#llm-instructions). Configure `llmInstructions` directly on a collection or global, and edit additional instructions through the Admin Panel's **Edit LLM instructions** menu. Schema responses include the combined text in `structuredContent.instructions` alongside `schema`, and in a text content block. Instructions are omitted when both sources are empty.
+
+Agents should fetch the schema and read its instructions before creating or updating content. Other tools do not return instructions. The corresponding local CLI schema commands return the same configured and saved text.
+
+Instruction configuration, storage, and access control are provided by Payload core and also work without the MCP plugin.
+
 ## HTTP transport
 
 HTTP is the recommended transport for both local development and deployed apps. During development, config changes follow Payload's normal dev-server reload lifecycle.
