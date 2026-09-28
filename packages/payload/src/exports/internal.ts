@@ -25,3 +25,4 @@ export { getEntityPermissions } from '../utilities/getEntityPermissions/getEntit
 export { isURLAllowed } from '../utilities/isURLAllowed.js'
 export { sanitizePermissions } from '../utilities/sanitizePermissions.js'
 export { sendTelemetryEvent } from '../utilities/telemetry/index.js'
+export { getLLMInstructions } from '../llm-instructions/getInstructions.js'

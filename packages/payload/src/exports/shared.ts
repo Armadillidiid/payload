@@ -1,4 +1,5 @@
 export { EntityType } from '../admin/views/dashboard.js'
+export { instructionsCollectionSlug } from '../llm-instructions/shared.js'
 
 export {
   generateCookie,

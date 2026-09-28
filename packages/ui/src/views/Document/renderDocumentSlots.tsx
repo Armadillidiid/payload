@@ -92,7 +92,9 @@ export const renderDocumentSlots: (args: {
     })
   }
 
-  const EditMenuItems = collectionConfig?.admin?.components?.edit?.editMenuItems
+  const EditMenuItems =
+    collectionConfig?.admin?.components?.edit?.editMenuItems ||
+    globalConfig?.admin?.components?.edit?.editMenuItems
 
   if (EditMenuItems) {
     components.EditMenuItems = RenderServerComponent({
