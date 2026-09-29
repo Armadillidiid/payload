@@ -1,6 +1,7 @@
 import type { ProtocolEra } from '@modelcontextprotocol/client'
 import type { Payload } from 'payload'
 
+import { buildEditorState } from '@payloadcms/richtext-lexical'
 import { randomUUID } from 'node:crypto'
 import { instructionsCollectionSlug } from 'payload/shared'
 import { assert, expect, onTestFinished } from 'vitest'
@@ -12,37 +13,17 @@ import { test } from '../__helpers/int/vitest.js'
 import { devUser } from '../credentials.js'
 import { createMcpClient } from './helpers/mcpClient.js'
 
-const additionalInstructions: NonNullable<PayloadLlmInstruction['additionalInstructions']> = {
-  root: {
-    type: 'root',
-    children: [
-      {
-        type: 'paragraph',
-        children: [
-          {
-            type: 'text',
-            detail: 0,
-            format: 1,
-            mode: 'normal',
-            style: '',
-            text: 'Keep page summaries under 100 words.',
-            version: 1,
-          },
-        ],
-        direction: null,
-        format: '',
-        indent: 0,
-        textFormat: 0,
-        textStyle: '',
-        version: 1,
-      },
-    ],
-    direction: null,
-    format: '',
-    indent: 0,
-    version: 1,
-  },
-}
+const additionalInstructions = buildEditorState<PayloadLlmInstruction['additionalInstructions']>({
+  text: 'Keep page summaries under 100 words.',
+})
+const paragraph = additionalInstructions.root.children[0]
+
+assert(paragraph?.type === 'paragraph')
+
+const text = paragraph.children[0]
+
+assert(text?.type === 'text')
+text.format = 1
 
 test.suite({ config: './config.ts' })('Shared LLM instructions', () => {
   for (const protocolEra of ['legacy', 'modern'] as const) {
