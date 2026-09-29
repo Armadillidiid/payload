@@ -1,9 +1,36 @@
+import { instructionsCollectionSlug } from 'payload/shared'
 import { expect } from 'vitest'
 
 import { test } from '../__helpers/int/vitest.js'
 import { saveAdditionalInstructions } from './helpers.js'
+import { hiddenCollectionSlug, hiddenGlobalSlug } from './slugs.js'
 
 test.suite({ config: './config.ts' })('CLI LLM instructions', () => {
+  for (const { command, slug, instructions } of [
+    {
+      command: 'getCollectionSchema',
+      slug: hiddenCollectionSlug,
+      instructions: 'Keep hidden pages private.',
+    },
+    {
+      command: 'getGlobalSchema',
+      slug: hiddenGlobalSlug,
+      instructions: 'Preserve hidden settings.',
+    },
+    { command: 'getCollectionSchema', slug: instructionsCollectionSlug, instructions: undefined },
+  ]) {
+    test(`should return the schema for non-target ${slug}`, async ({ cli }) => {
+      const output = await cli(`${command} --slug ${slug} --json`)
+      const response = JSON.parse(output.stdout)
+
+      expect(response).toMatchObject({
+        result: { slug, schema: expect.any(Object) },
+        success: true,
+      })
+      expect(response.result.instructions).toBe(instructions)
+    })
+  }
+
   test('should include saved global instructions alongside the CLI schema', async ({
     cli,
     payload,

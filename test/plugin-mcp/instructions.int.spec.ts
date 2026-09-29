@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { instructionsCollectionSlug } from 'payload/shared'
 import { assert, expect, onTestFinished } from 'vitest'
 
+import type { TestRBAC } from '../__helpers/plugins/rbac/index.js'
 import type { NextRESTClient } from '../__helpers/shared/NextRESTClient.js'
 import type { PayloadLlmInstruction } from './payload-types.js'
 
@@ -27,6 +28,62 @@ text.format = 1
 
 test.suite({ config: './config.ts' })('Shared LLM instructions', () => {
   for (const protocolEra of ['legacy', 'modern'] as const) {
+    for (const target of [
+      { slug: 'pages', type: 'collection', name: 'getCollectionSchema', operation: 'create' },
+      { slug: 'pages', type: 'collection', name: 'getCollectionSchema', operation: 'update' },
+      { slug: 'site-settings', type: 'global', name: 'getGlobalSchema', operation: 'update' },
+    ] as const) {
+      test(`should return ${target.type} schemas with ${target.operation} access and no target read access [${protocolEra}]`, async ({
+        payload,
+        restClient,
+      }) => {
+        await saveAdditionalInstructions({
+          ...(target.type === 'collection'
+            ? { collectionSlug: target.slug }
+            : { globalSlug: target.slug }),
+          payload,
+        })
+
+        const rbac: TestRBAC = {
+          collections: Object.fromEntries(
+            payload.config.collections
+              .filter(({ slug }) => slug !== instructionsCollectionSlug)
+              .map(({ slug }) => [slug, { read: false }]),
+          ),
+          globals: Object.fromEntries(
+            payload.config.globals.map(({ slug }) => [slug, { read: false }]),
+          ),
+        }
+
+        if (target.type === 'collection') {
+          rbac.collections!.pages = {
+            read: false,
+            [target.operation === 'create' ? 'update' : 'create']: false,
+          }
+        }
+
+        const client = await connectMcp({ payload, protocolEra, rbac, restClient })
+        const response = await client.callTool({
+          name: target.name,
+          arguments: { slug: target.slug },
+        })
+        const configured =
+          target.type === 'collection'
+            ? payload.collections[target.slug].config.llmInstructions
+            : payload.config.globals.find(({ slug }) => slug === target.slug)?.llmInstructions
+
+        expect(response.isError).not.toBe(true)
+        expect(response.structuredContent).toMatchObject({
+          slug: target.slug,
+          schema: expect.any(Object),
+        })
+        expect(response.structuredContent?.instructions).toBe(configured || undefined)
+        expect(JSON.stringify(response.content)).not.toContain(
+          'Keep page summaries under 100 words.',
+        )
+      })
+    }
+
     for (const { target, name, slug } of [
       { target: { collectionSlug: 'pages' }, name: 'getCollectionSchema', slug: 'pages' },
       { target: { globalSlug: 'site-settings' }, name: 'getGlobalSchema', slug: 'site-settings' },
@@ -116,10 +173,12 @@ test.suite({ config: './config.ts' })('Shared LLM instructions', () => {
 const connectMcp = async ({
   payload,
   protocolEra,
+  rbac,
   restClient,
 }: {
   payload: Payload
   protocolEra: ProtocolEra
+  rbac?: TestRBAC
   restClient: NextRESTClient
 }) => {
   const { user } = await payload.login({ collection: 'users', data: devUser })
@@ -130,7 +189,7 @@ const connectMcp = async ({
   await payload.update({
     id: user.id,
     collection: 'users',
-    data: { apiKey },
+    data: { apiKey, rbac },
     overrideAccess: false,
     user,
   })

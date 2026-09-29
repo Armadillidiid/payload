@@ -575,21 +575,8 @@ export interface PayloadMigration {
  */
 export interface PayloadLlmInstruction {
   id: string;
-  collectionSlug?:
-    | (
-        | 'users'
-        | 'media'
-        | 'dispatch-media'
-        | 'posts'
-        | 'products'
-        | 'rolls'
-        | 'modified-prompts'
-        | 'returned-resources'
-        | 'pages'
-        | 'field-types'
-      )
-    | null;
-  globalSlug?: 'site-settings' | null;
+  collectionSlug?: string | null;
+  globalSlug?: string | null;
   title?: string | null;
   type?: ('collection' | 'global') | null;
   additionalInstructions?: LexicalRichText<LexicalNodes_4EE6A29F> | null;
