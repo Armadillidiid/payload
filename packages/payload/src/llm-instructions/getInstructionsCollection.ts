@@ -109,17 +109,15 @@ export const getInstructionsCollection = ({
       },
       {
         name: 'collectionSlug',
-        type: 'select',
+        type: 'text',
         admin: { hidden: true },
         index: true,
-        options: targets.filter(({ type }) => type === 'collection').map(({ slug }) => slug),
       },
       {
         name: 'globalSlug',
-        type: 'select',
+        type: 'text',
         admin: { hidden: true },
         index: true,
-        options: targets.filter(({ type }) => type === 'global').map(({ slug }) => slug),
       },
       {
         name: 'title',
@@ -287,6 +285,19 @@ export const getInstructionsCollection = ({
                 message: req.t('llmInstructions:targetRequired'),
                 path,
               })),
+              req,
+            })
+          }
+
+          if (!getTarget({ collectionSlug, globalSlug })) {
+            throw new ValidationError({
+              collection: instructionsCollectionSlug,
+              errors: [
+                {
+                  message: req.t('validation:invalidInput'),
+                  path: collectionSlug ? 'collectionSlug' : 'globalSlug',
+                },
+              ],
               req,
             })
           }

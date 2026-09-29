@@ -1,13 +1,91 @@
 import { createLocalReq } from 'payload'
 import { getLLMInstructions } from 'payload/internal'
 import { instructionsCollectionSlug } from 'payload/shared'
-import { expect } from 'vitest'
+import { expect, onTestFinished } from 'vitest'
 
 import { test } from '../__helpers/int/vitest.js'
 import { devUser } from '../credentials.js'
 import { additionalInstructions, findInstructions, saveAdditionalInstructions } from './helpers.js'
+import { hiddenCollectionSlug, hiddenGlobalSlug } from './slugs.js'
 
 test.suite({ config: './config.ts' })('LLM instructions', () => {
+  for (const field of ['collectionSlug', 'globalSlug']) {
+    test(`should allow querying ${field} with a slug outside the configured targets`, async ({
+      payload,
+    }) => {
+      const result = await payload.find({
+        collection: instructionsCollectionSlug,
+        where: { [field]: { equals: 'removed-target' } },
+      })
+
+      expect(result.docs).toEqual([])
+    })
+  }
+
+  for (const target of [
+    { slug: hiddenCollectionSlug, type: 'collection', instructions: 'Keep hidden pages private.' },
+    { slug: hiddenGlobalSlug, type: 'global', instructions: 'Preserve hidden settings.' },
+    { slug: instructionsCollectionSlug, type: 'collection', instructions: '' },
+  ] as const) {
+    test(`should return only configured instructions for non-target ${target.slug}`, async ({
+      payload,
+    }) => {
+      const req = await createLocalReq({}, payload)
+      const instructions = await getLLMInstructions({
+        slug: target.slug,
+        type: target.type,
+        overrideAccess: true,
+        req,
+      })
+
+      expect(instructions).toBe(target.instructions)
+    })
+  }
+
+  test('should keep configured instructions when reading saved instructions fails', async ({
+    payload,
+  }) => {
+    const { user } = await payload.login({ collection: 'users', data: devUser })
+
+    await saveAdditionalInstructions({ collectionSlug: 'pages', payload })
+
+    const req = await createLocalReq({ user }, payload)
+    const hooks = payload.collections[instructionsCollectionSlug].config.hooks
+    const originalHooks = hooks.beforeOperation
+
+    onTestFinished(() => {
+      hooks.beforeOperation = originalHooks
+    })
+    hooks.beforeOperation = [
+      () => {
+        throw new Error('Instructions storage unavailable')
+      },
+    ]
+
+    await expect(getLLMInstructions({ slug: 'pages', type: 'collection', req })).resolves.toBe(
+      payload.collections.pages.config.llmInstructions,
+    )
+  })
+
+  for (const data of [
+    { collectionSlug: 'unknown-collection' },
+    { globalSlug: 'unknown-global' },
+    { collectionSlug: hiddenCollectionSlug },
+    { globalSlug: hiddenGlobalSlug },
+    { collectionSlug: instructionsCollectionSlug },
+  ]) {
+    test(`should reject creating instructions for non-target ${JSON.stringify(data)}`, async ({
+      payload,
+    }) => {
+      await expect(
+        payload.create({ collection: instructionsCollectionSlug, data }),
+      ).rejects.toMatchObject({
+        name: 'ValidationError',
+        data: { errors: [expect.objectContaining({ path: Object.keys(data)[0] })] },
+      })
+    })
+  }
+
   for (const target of [
     { slug: 'pages', type: 'collection', collectionSlug: 'pages' },
     { slug: 'site-settings', type: 'global', globalSlug: 'site-settings' },

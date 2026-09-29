@@ -1,5 +1,7 @@
 import type { Payload } from 'payload'
 
+import { createLocalReq } from 'payload'
+import { getLLMInstructions } from 'payload/internal'
 import { instructionsCollectionSlug } from 'payload/shared'
 import { expect, vi } from 'vitest'
 
@@ -9,6 +11,25 @@ import { devUser } from '../credentials.js'
 test.suite({ config: './config.ts' })('LLM instruction target access', () => {
   test.afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  test('should return configured instructions without logging an error when all target reads are denied', async ({
+    payload,
+  }) => {
+    const { user } = await payload.login({ collection: 'users', data: devUser })
+
+    for (const target of [...payload.config.collections, ...payload.config.globals]) {
+      if (target.slug !== instructionsCollectionSlug) {
+        vi.spyOn(target.access, 'read').mockResolvedValue(false)
+      }
+    }
+
+    const logger = vi.spyOn(payload.logger, 'error')
+    const req = await createLocalReq({ user }, payload)
+    const instructions = await getLLMInstructions({ slug: 'pages', type: 'collection', req })
+
+    expect(instructions).toBe(payload.collections.pages.config.llmInstructions)
+    expect(logger).not.toHaveBeenCalled()
   })
 
   for (const target of [

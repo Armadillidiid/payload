@@ -23,12 +23,25 @@ export const getLLMInstructions = async ({
   }
 
   const collection = req.payload.collections[instructionsCollectionSlug]
+  const configuredInstructions = target.llmInstructions ?? ''
+
+  if (
+    target.admin.hidden === true ||
+    (type === 'collection' && slug === instructionsCollectionSlug) ||
+    req.payload.config.llmInstructions === false ||
+    !collection ||
+    (!overrideAccess && !req.user)
+  ) {
+    return configuredInstructions
+  }
+
   let additionalInstructions = ''
 
-  if (req.payload.config.llmInstructions !== false && collection && (overrideAccess || req.user)) {
+  try {
     const { docs } = await req.payload.find({
       collection: instructionsCollectionSlug,
       depth: 0,
+      disableErrors: true,
       limit: 1,
       overrideAccess,
       req,
@@ -48,7 +61,14 @@ export const getLLMInstructions = async ({
         additionalInstructions = field.editor?.converters?.toMarkdown?.({ data: value }) ?? ''
       }
     }
+  } catch (err) {
+    req.payload.logger.error({
+      err,
+      msg: `Failed to read LLM instructions for ${type} "${slug}".`,
+    })
+
+    return configuredInstructions
   }
 
-  return [target.llmInstructions, additionalInstructions].filter(Boolean).join('\n\n')
+  return [configuredInstructions, additionalInstructions].filter(Boolean).join('\n\n')
 }

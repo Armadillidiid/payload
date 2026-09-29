@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url'
 
 import { buildConfigWithDefaults } from '../buildConfigWithDefaults.js'
 import { devUser } from '../credentials.js'
+import { HiddenPages } from './collections/HiddenPages.js'
+import { HiddenSettings } from './globals/HiddenSettings.js'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -19,6 +21,7 @@ export default buildConfigWithDefaults({
   config: {
     admin: { importMap: { baseDir: dirname } },
     collections: [
+      HiddenPages,
       { slug: 'users', auth: true, fields: [] },
       {
         slug: 'pages',
@@ -28,7 +31,7 @@ export default buildConfigWithDefaults({
           '## System LLM instructions for the Pages Collection\n\n### What to Include\n\n- Use clear headings and concise page content.\n- Use the configured layout blocks.\n\n### What to Avoid\n\n- Do not publish a page without a title.',
       },
     ],
-    globals: [{ slug: 'site-settings', fields: [{ name: 'title', type: 'text' }] }],
+    globals: [HiddenSettings, { slug: 'site-settings', fields: [{ name: 'title', type: 'text' }] }],
     llmInstructions: {
       access: ({ req }) => req.user?.email === devUser.email,
     },

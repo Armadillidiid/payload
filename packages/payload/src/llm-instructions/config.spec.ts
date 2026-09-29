@@ -1,4 +1,4 @@
-import { assert, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import type { Config } from '../config/types.js'
 
@@ -28,16 +28,14 @@ describe('LLM instructions config', () => {
     expect(config.collections[0]?.llmInstructions).toBe('Keep titles concise.')
   })
 
-  it('should exclude hidden collections and globals from instruction targets and menus', () => {
+  it('should store target slugs as text without exposing hidden targets in menus', () => {
     const config = createConfig()
     const collection = config.collections.find(({ slug }) => slug === instructionsCollectionSlug)
     const collectionSlug = collection?.flattenedFields.find(({ name }) => name === 'collectionSlug')
     const globalSlug = collection?.flattenedFields.find(({ name }) => name === 'globalSlug')
 
-    assert(collectionSlug?.type === 'select' && globalSlug?.type === 'select')
-    expect(collectionSlug.options).toContain('pages')
-    expect(collectionSlug.options).not.toContain('hidden-pages')
-    expect(globalSlug.options).toEqual(['settings'])
+    expect(collectionSlug?.type).toBe('text')
+    expect(globalSlug?.type).toBe('text')
     expect(config.collections[1]?.admin.components?.listMenuItems ?? []).not.toContain(
       '@payloadcms/ui#LLMInstructionsMenuItem',
     )

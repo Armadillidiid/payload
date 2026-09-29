@@ -79,6 +79,7 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    'hidden-pages': HiddenPage;
     users: User;
     pages: Page;
     'payload-kv': PayloadKv;
@@ -89,6 +90,7 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    'hidden-pages': HiddenPagesSelect<false> | HiddenPagesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -102,9 +104,11 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'hidden-settings': HiddenSetting;
     'site-settings': SiteSetting;
   };
   globalsSelect: {
+    'hidden-settings': HiddenSettingsSelect<false> | HiddenSettingsSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
@@ -136,6 +140,15 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hidden-pages".
+ */
+export interface HiddenPage {
+  id: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -198,6 +211,10 @@ export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
+        relationTo: 'hidden-pages';
+        value: string | HiddenPage;
+      } | null)
+    | ({
         relationTo: 'users';
         value: string | User;
       } | null)
@@ -253,14 +270,22 @@ export interface PayloadMigration {
  */
 export interface PayloadLlmInstruction {
   id: string;
-  collectionSlug?: ('users' | 'pages') | null;
-  globalSlug?: 'site-settings' | null;
+  collectionSlug?: string | null;
+  globalSlug?: string | null;
   title?: string | null;
   type?: ('collection' | 'global') | null;
   additionalInstructions?: LexicalRichText<LexicalNodes_4EE6A29F> | null;
   systemInstructions?: LexicalRichText<LexicalNodes_4EE6A29F> | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hidden-pages_select".
+ */
+export interface HiddenPagesSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -351,6 +376,15 @@ export interface PayloadLlmInstructionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hidden-settings".
+ */
+export interface HiddenSetting {
+  id: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
  */
 export interface SiteSetting {
@@ -358,6 +392,15 @@ export interface SiteSetting {
   title?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hidden-settings_select".
+ */
+export interface HiddenSettingsSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
