@@ -219,11 +219,9 @@ The agent reads the collection's upload settings before acting. MIME type and fi
 
 ## LLM instructions
 
-The `getCollectionSchema` and `getGlobalSchema` tools return Payload's [shared LLM instructions](../configuration/cli#llm-instructions). Configure `llmInstructions` directly on a collection or global, and edit additional instructions through the Admin Panel's **Edit LLM instructions** menu. Schema responses include the combined text in `structuredContent.instructions` alongside `schema`, and in a text content block. Instructions are omitted when both sources are empty.
+The `getCollectionSchema` and `getGlobalSchema` tools return [LLM instructions](../configuration/llm-instructions) in `structuredContent.instructions` alongside `schema`, and in a text content block. Read them before creating or updating content.
 
-Agents should fetch the schema and read its instructions before creating or updating content. Other tools do not return instructions. The corresponding local CLI schema commands return the same configured and saved text.
-
-Instruction configuration, storage, and access control are provided by Payload core and also work without the MCP plugin.
+Saved instructions are retrieved using the authenticated caller and the request's access mode.
 
 ## HTTP transport
 

@@ -8,6 +8,8 @@ keywords: llm, ai, instructions, agents
 
 LLM instructions guide AI agents working with your collections and globals. Payload core manages configured Markdown instructions and additional instructions saved through the Admin Panel. The feature works without the MCP plugin.
 
+Both the [CLI](./cli) and [MCP plugin](../plugins/mcp) return configured instructions combined with saved additional instructions as Markdown. Only `getCollectionSchema` and `getGlobalSchema` include them, so agents should read the schema before creating or updating content. Instructions are omitted when both sources are empty.
+
 ## Configuration
 
 Set `llmInstructions` on a collection or global to provide read-only Markdown instructions. Use the root `llmInstructions` option to control instruction management:
@@ -56,4 +58,4 @@ Authenticated users can read saved instructions for collections and globals they
 
 ## Disabling management
 
-Set the root `llmInstructions` option to `false` to disable the management collection and menu items.
+Set the root `llmInstructions` option to `false` to disable the management collection and menu items. Configured collection and global instructions are still included in CLI and MCP schema responses.
