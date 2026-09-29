@@ -6,12 +6,14 @@ import React from 'react'
 import { useAuth } from '../../providers/Auth/index.js'
 import { useConfig } from '../../providers/Config/index.js'
 import { useDocumentInfo } from '../../providers/DocumentInfo/index.js'
+import { useTranslation } from '../../providers/Translation/index.js'
 import * as PopupList from '../Popup/PopupButtonList/index.js'
 
 export const LLMInstructionsMenuItem = ({ collectionSlug }: { collectionSlug?: string }) => {
   const { permissions } = useAuth()
   const { config } = useConfig()
   const { globalSlug } = useDocumentInfo()
+  const { t } = useTranslation()
   const targetPermissions = collectionSlug
     ? permissions?.collections?.[collectionSlug]
     : globalSlug
@@ -37,7 +39,7 @@ export const LLMInstructionsMenuItem = ({ collectionSlug }: { collectionSlug?: s
           path: `/collections/${instructionsCollectionSlug}/${encodeURIComponent(id)}`,
         })}
       >
-        Edit LLM instructions
+        {t('llmInstructions:editInstructions')}
       </PopupList.Button>
     </React.Fragment>
   )

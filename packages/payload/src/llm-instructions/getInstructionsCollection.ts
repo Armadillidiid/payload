@@ -131,17 +131,17 @@ export const getInstructionsCollection = ({
             ({ data, originalDoc, req }) => getTitle({ data: { ...originalDoc, ...data }, req }),
           ],
         },
-        label: 'Title',
+        label: ({ t }) => t('llmInstructions:title'),
       },
       {
         name: 'type',
         type: 'select',
         admin: { hidden: true },
         hooks: { afterRead: [({ data }) => getTarget(data)?.type] },
-        label: 'Type',
+        label: ({ t }) => t('version:type'),
         options: [
-          { label: 'Collection', value: 'collection' },
-          { label: 'Global', value: 'global' },
+          { label: ({ t }) => t('general:collection'), value: 'collection' },
+          { label: ({ t }) => t('llmInstructions:global'), value: 'global' },
         ],
         virtual: true,
       },
@@ -167,10 +167,10 @@ export const getInstructionsCollection = ({
                   className: 'llm-instructions__editor',
                   components: { Cell: '@payloadcms/ui/rsc#LLMInstructionsCell' },
                 },
-                label: 'Additional instructions',
+                label: ({ t }) => t('llmInstructions:additionalInstructions'),
               },
             ],
-            label: 'Additional instructions',
+            label: ({ t }) => t('llmInstructions:additionalInstructions'),
           },
           {
             fields: [
@@ -209,7 +209,7 @@ export const getInstructionsCollection = ({
                 virtual: true,
               },
             ],
-            label: 'System instructions (read-only)',
+            label: ({ t }) => t('llmInstructions:systemInstructions'),
           },
         ],
       },
@@ -284,7 +284,7 @@ export const getInstructionsCollection = ({
             throw new ValidationError({
               collection: instructionsCollectionSlug,
               errors: ['collectionSlug', 'globalSlug'].map((path) => ({
-                message: 'Provide exactly one of collectionSlug or globalSlug.',
+                message: req.t('llmInstructions:targetRequired'),
                 path,
               })),
               req,
@@ -299,7 +299,7 @@ export const getInstructionsCollection = ({
               collection: instructionsCollectionSlug,
               errors: [
                 {
-                  message: 'The instruction target cannot be changed.',
+                  message: req.t('llmInstructions:targetCannotBeChanged'),
                   path: collectionSlug ? 'collectionSlug' : 'globalSlug',
                 },
               ],
@@ -311,7 +311,10 @@ export const getInstructionsCollection = ({
         },
       ],
     },
-    labels: { plural: 'LLM Instructions', singular: 'LLM Instructions' },
+    labels: {
+      plural: ({ t }) => t('llmInstructions:instructions'),
+      singular: ({ t }) => t('llmInstructions:instructions'),
+    },
     lockDocuments: false,
     select: ({ select }) => {
       if (!select) {

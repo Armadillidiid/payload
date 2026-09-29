@@ -1,5 +1,6 @@
 import type { Payload, PayloadRequest } from 'payload'
 
+import { buildEditorState } from '@payloadcms/richtext-lexical'
 import { instructionsCollectionSlug } from 'payload/shared'
 import { expect } from 'vitest'
 
@@ -7,38 +8,9 @@ import type { PayloadLlmInstruction } from './payload-types.js'
 
 import { devUser } from '../credentials.js'
 
-export const additionalInstructions: NonNullable<PayloadLlmInstruction['additionalInstructions']> =
-  {
-    root: {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [
-            {
-              type: 'text',
-              detail: 0,
-              format: 0,
-              mode: 'normal',
-              style: '',
-              text: 'Keep page summaries under 100 words.',
-              version: 1,
-            },
-          ],
-          direction: null,
-          format: '',
-          indent: 0,
-          textFormat: 0,
-          textStyle: '',
-          version: 1,
-        },
-      ],
-      direction: null,
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-  }
+export const additionalInstructions = buildEditorState<
+  PayloadLlmInstruction['additionalInstructions']
+>({ text: 'Keep page summaries under 100 words.' })
 
 export const saveAdditionalInstructions = async ({
   collectionSlug,
