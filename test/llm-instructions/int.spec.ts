@@ -1,4 +1,4 @@
-import { createLocalReq } from 'payload'
+import { createLocalReq, initTransaction, killTransaction } from 'payload'
 import { getLLMInstructions } from 'payload/internal'
 import { instructionsCollectionSlug } from 'payload/shared'
 import { expect, onTestFinished } from 'vitest'
@@ -140,6 +140,82 @@ test.suite({ config: './config.ts' })('LLM instructions', () => {
       (payload.config.plugins ?? []).some((plugin) => plugin.slug === '@payloadcms/plugin-mcp'),
     ).toBe(false)
   })
+
+  test('should preserve Request properties while isolating sync context', async ({ payload }) => {
+    const { user } = await payload.login({ collection: 'users', data: devUser })
+    const request = new Request('https://example.test/api/mcp', {
+      headers: { 'x-request-id': 'instructions-sync' },
+      method: 'POST',
+    })
+    const req = await createLocalReq({ context: { caller: true }, req: request, user }, payload)
+    const hooks = payload.collections[instructionsCollectionSlug].config.hooks
+    const originalHooks = hooks.beforeOperation
+    const syncRequests: { header: null | string; method: string; url: string }[] = []
+
+    onTestFinished(() => {
+      hooks.beforeOperation = originalHooks
+    })
+    hooks.beforeOperation = [
+      ...(originalHooks ?? []),
+      ({ args, req }) => {
+        if (req.context.syncLLMInstructions) {
+          syncRequests.push({
+            header: req.headers.get('x-request-id'),
+            method: req.method,
+            url: req.url,
+          })
+          req.context.syncOnly = true
+        }
+
+        return args
+      },
+    ]
+
+    await payload.find({ collection: instructionsCollectionSlug, overrideAccess: false, req })
+
+    expect(syncRequests.length).toBeGreaterThan(0)
+    for (const syncRequest of syncRequests) {
+      expect(syncRequest).toEqual({
+        header: 'instructions-sync',
+        method: 'POST',
+        url: request.url,
+      })
+    }
+    expect(req.context).toEqual({ caller: true })
+  })
+
+  test.options({ db: (adapter) => adapter === 'postgres' || adapter === 'mongodb' })(
+    'should keep shared sync results when the first caller rolls back its transaction',
+    async ({ payload }) => {
+      const { user } = await payload.login({ collection: 'users', data: devUser })
+      const req = await createLocalReq({ user }, payload)
+      const concurrentReq = await createLocalReq({ user }, payload)
+
+      onTestFinished(() => killTransaction(req))
+      expect(await initTransaction(req)).toBe(true)
+
+      const transactionID = req.transactionID
+      const [first, concurrent] = await Promise.all([
+        payload.find({ collection: instructionsCollectionSlug, overrideAccess: false, req }),
+        payload.find({
+          collection: instructionsCollectionSlug,
+          overrideAccess: false,
+          req: concurrentReq,
+        }),
+      ])
+
+      expect(req.transactionID).toBe(transactionID)
+      expect(concurrentReq.transactionID).toBeUndefined()
+      await killTransaction(req)
+
+      // An anonymous Local API read bypasses access without triggering another sync.
+      const persisted = await payload.find({ collection: instructionsCollectionSlug })
+
+      expect(first.totalDocs).toBeGreaterThan(0)
+      expect(concurrent.docs.map(({ id }) => id)).toEqual(first.docs.map(({ id }) => id))
+      expect(persisted.docs.map(({ id }) => id)).toEqual(first.docs.map(({ id }) => id))
+    },
+  )
 
   test('should resolve target metadata when only list columns are selected', async ({
     payload,

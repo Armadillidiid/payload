@@ -8,6 +8,7 @@ import type { InstructionTargetFields } from './shared.js'
 
 import { ValidationError } from '../errors/ValidationError.js'
 import { getSelectMode } from '../utilities/getSelectMode.js'
+import { isolateObjectProperty } from '../utilities/isolateObjectProperty.js'
 import { getInstructionTargetAccess } from './getInstructionTargetAccess.js'
 import { instructionsCollectionSlug } from './shared.js'
 
@@ -223,7 +224,11 @@ export const getInstructionsCollection = ({
 
           if (!pending) {
             // Only configuration-owned identities are created here. Client requests cannot set context.
-            const syncReq = { ...req, context: { ...req.context, [syncContextKey]: true } }
+            const syncReq = isolateObjectProperty(req, ['context', 'transactionID'])
+
+            syncReq.context = { ...req.context, [syncContextKey]: true }
+            // Concurrent readers share this sync, so it must commit independently of the caller.
+            delete syncReq.transactionID
 
             pending = (async () => {
               const existing = await req.payload.find({
